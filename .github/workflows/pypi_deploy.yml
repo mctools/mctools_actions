@@ -79,10 +79,10 @@ jobs:
           echo "setup_matrix={\"include\":$MATRIX}" >> $GITHUB_OUTPUT
           echo "setup_nr=$(echo "$MATRIX" | jq length)" >> $GITHUB_OUTPUT
         env:
-          # CIBW_ARCHS_MACOS: "x86_64 arm64"
-          # CIBW_SKIP: pp*
+          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_SKIP: pp*
           # CIBW_BUILD: cp39-* #TODO only for development
-          CIBW_BUILD: cp39-manylinux_x86_64 #TODO only for development
+          # CIBW_BUILD: cp39-manylinux_x86_64 #TODO only for development
     outputs:
       setups: ${{ steps.create-matrix.outputs.setup_matrix }}
       setupNr: ${{ steps.create-matrix.outputs.setup_nr }}
