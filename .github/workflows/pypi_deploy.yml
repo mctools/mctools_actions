@@ -103,7 +103,7 @@ jobs:
           repository: ${{ inputs.REPOSITORY }}
           ref: ${{ inputs.REF }}
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         name: Install Python #Necessary for macos because default python version is too low for cibuildwheel
         with:
           python-version: "3.11"
