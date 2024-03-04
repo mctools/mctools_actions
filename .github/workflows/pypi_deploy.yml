@@ -128,6 +128,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
+          name: ${{ matrix.identifier }}
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
@@ -146,6 +147,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
+          name: sdist
           path: dist/*.tar.gz
 
   upload_pypi:
@@ -168,14 +170,27 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: artifact
-          path: dist #unpacks default artifact into dist/
+          path: dist_all #unpacks all artifacts into dist_all/
+
+        #gh-action-pypi-publish expects a flat directory layout
+      - name: Move wheel files into dist_flattened
+        run: |
+            mkdir -p dist_flattened
+            find dist_all -type f -name "*.whl" -exec mv {} dist_flattened/ \;
+
+        #add the source distribution to the dist_flattened directory
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist_flattened
 
       - uses: pypa/gh-action-pypi-publish@v1.8.12
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           repository-url: ${{ vars.PYPI_UPLOAD_URL }}
           skip-existing: ${{ inputs.SKIP_EXISTING }}
+          packages-dir: dist_flattened
+
 
       - name: Verify upload
         if: vars.PYPI_QUERY_URL != ''
