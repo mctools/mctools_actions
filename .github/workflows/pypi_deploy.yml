@@ -196,7 +196,7 @@ jobs:
         if: vars.PYPI_QUERY_URL != ''
         run: |
           python3 -c "import os,subprocess,json ;\
-          local_files = os.listdir('dist') ;\
+          local_files = os.listdir('dist_flattened') ;\
           local_files.sort() ;\
           response_json = json.loads(subprocess.check_output(['curl', '-sX', 'GET', '${{ vars.PYPI_QUERY_URL }}/${{ needs.preparations.outputs.versionNr }}/json']).decode()) ;\
           remote_files = [file_obj['filename'] for file_obj in response_json['urls'] if file_obj['packagetype'] in ['sdist', 'bdist_wheel']] ;\
@@ -211,7 +211,7 @@ jobs:
 
       - name: Verify completeness
         run: |
-          file_count=$(ls -1q dist | wc -l)
+          file_count=$(ls -1q dist_flattened | wc -l)
           expected_file_count=$((expected_wheel_number + 1)) #wheels + 1 sdist
           if [ "$file_count" -ne "$expected_file_count" ]; then
             echo "Error: File count mismatch. Expected: $expected_file_count, Actual: $file_count"
