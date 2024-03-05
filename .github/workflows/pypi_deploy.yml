@@ -78,6 +78,7 @@ jobs:
           print(json.dumps(setups));")
           echo "setup_matrix={\"include\":$MATRIX}" >> $GITHUB_OUTPUT
           echo "setup_nr=$(echo "$MATRIX" | jq length)" >> $GITHUB_OUTPUT
+          echo "manylinux_x86_64_setup_nr=$(cibuildwheel --print-build-identifiers --platform linux | grep -c manylinux_x86)" >> $GITHUB_OUTPUT
         env:
           CIBW_ARCHS_MACOS: "x86_64 arm64"
           CIBW_SKIP: pp*
@@ -86,6 +87,7 @@ jobs:
     outputs:
       setups: ${{ steps.create-matrix.outputs.setup_matrix }}
       setupNr: ${{ steps.create-matrix.outputs.setup_nr }}
+      manylinux_x86_64_setupNr: ${{ steps.create-matrix.outputs.manylinux_x86_64_setup_nr }}
       versionNr: ${{ steps.version-number.outputs.version_number }}
       onTag: ${{ steps.check-for-tag.outputs.on_tag }}
 
@@ -212,6 +214,7 @@ jobs:
       - name: Verify completeness
         run: |
           file_count=$(ls -1q dist_flattened | wc -l)
+          expected_wheel_number=$((setup_number + manylinux_x86_64_setup_number)) # 1 wheel for each setup + 1 manylinux_2_28 wheel for each manylinux_x86_64 setup
           expected_file_count=$((expected_wheel_number + 1)) #wheels + 1 sdist
           if [ "$file_count" -ne "$expected_file_count" ]; then
             echo "Error: File count mismatch. Expected: $expected_file_count, Actual: $file_count"
@@ -219,5 +222,6 @@ jobs:
           fi
           echo "File count verified. Total files: $file_count"
         env:
-          expected_wheel_number: ${{needs.preparations.outputs.setupNr}}
+          setup_number: ${{needs.preparations.outputs.setupNr}}
+          manylinux_x86_64_setup_number: ${{needs.preparations.outputs.manylinux_x86_64_setupNr}}
 
