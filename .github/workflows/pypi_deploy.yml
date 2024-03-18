@@ -74,7 +74,7 @@ jobs:
           linux_identifiers = subprocess.check_output('cibuildwheel --print-build-identifiers --platform linux', shell=True).decode().splitlines(); \
           macos_identifiers = subprocess.check_output('cibuildwheel --print-build-identifiers --platform macos', shell=True).decode().splitlines(); \
           setups = [{'os': 'ubuntu-latest', 'identifier': i} for i in linux_identifiers] + \
-                   [{'os': 'macos-latest',  'identifier': i} for i in macos_identifiers]; \
+                   [{'os': 'macos-14',  'identifier': i} for i in macos_identifiers]; \
           print(json.dumps(setups));")
           echo "setup_matrix={\"include\":$MATRIX}" >> $GITHUB_OUTPUT
           echo "setup_nr=$(echo "$MATRIX" | jq length)" >> $GITHUB_OUTPUT
