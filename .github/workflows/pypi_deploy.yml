@@ -118,6 +118,7 @@ jobs:
           CIBW_BUILD_VERBOSITY: 1
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014 # Default value, indicated for clarity
           CIBW_MANYLINUX_I686_IMAGE: manylinux2014 # Default value, indicated for clarity
+          CIBW_BEFORE_BUILD: pip install importlib_metadata
 
       - name: Build wheel for manylinux_x86_64 with manylinux_2_28
         uses: pypa/cibuildwheel@v2.17.0
@@ -127,6 +128,7 @@ jobs:
         env:
           CIBW_BUILD_VERBOSITY: 1
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+          CIBW_BEFORE_BUILD: pip install importlib_metadata
 
       - uses: actions/upload-artifact@v4
         with:
