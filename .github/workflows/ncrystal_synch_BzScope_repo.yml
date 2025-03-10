@@ -1,0 +1,79 @@
+name: synch_ncrystal_BzScope
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: '27 4,10,16,22 * * *' # “At minute 27 past hour 4, 10, 16, and 22.”
+
+jobs:
+  check_for_updates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get latest commit hash of github.com/mctools/ncrystal-plugin-BzScope
+        run: |
+          V=$(git ls-remote https://github.com/mctools/ncrystal-plugin-BzScope HEAD| awk '{ print $1}')
+          echo "LATEST_VERSION_MIRROR=${V}" >> $GITHUB_ENV
+
+      - name: Get latest commit hash of code.ihep.ac.cn/cinema-developers/ncplugin-bzscope
+        run: |
+          V=$(git ls-remote https://code.ihep.ac.cn/cinema-developers/ncplugin-bzscope.git HEAD| awk '{ print $1}')
+          echo "LATEST_VERSION_UPSTREAM=${V}" >> $GITHUB_ENV
+
+      - name: Compare hashes
+        id: compare_hashes
+        run: |
+          if [ "x${LATEST_VERSION_UPSTREAM}" == "x${LATEST_VERSION_MIRROR}" ]; then
+              echo "update_needed=1" >> $GITHUB_OUTPUT
+          else
+              echo "update_needed=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify version number
+        id: version-number
+        run: |
+          set -eux
+          VERSIONSTR=$(./src/devel/bin/ncdevtool verifytag --fail-if-devel -p 'vX.Y.Z' --file-verify=VERSION)
+          echo "Extracted version str: '${VERSIONSTR}'"
+          echo "version_number=$VERSIONSTR" >> $GITHUB_OUTPUT
+
+    outputs:
+      update_needed: ${{ steps.compare_hashes.outputs.update_needed }}
+
+  perform_update:
+    needs: [ check_for_updates ]
+    if: needs.check_for_updates.outputs.update_needed == '1'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout mirror
+        uses: actions/checkout@v4
+        with:
+          repository: mctools/ncrystal-plugin-BzScope
+          ref: main
+          path: mirror_clone
+          fetch-depth: 0
+
+      - name: Add remote and fetch updates
+        working-directory: ./mirror_clone
+        run: |
+          git remote add upstream https://code.ihep.ac.cn/cinema-developers/ncplugin-bzscope.git
+          git fetch upstream
+
+      - name: Git fast-forward merge
+        working-directory: ./mirror_clone
+        run: git merge --ff upstream/main
+
+      - name: Push changes
+        working-directory: ./mirror_clone
+        run: echo TODO
+
+      - name: Verify synchronisation
+        run: |
+          V1=$(git ls-remote https://github.com/mctools/ncrystal-plugin-BzScope HEAD| awk '{ print $1}')
+          echo "Mirror: ${V1}"
+          V2=$(git ls-remote https://code.ihep.ac.cn/cinema-developers/ncplugin-bzscope.git HEAD| awk '{ print $1}')
+          echo "Upstream: ${V2}"
+          if [ "x${V1}" != "x${V2}" ]; then
+              echo "Mismatch!!"
+              exit 1
+          fi
+
