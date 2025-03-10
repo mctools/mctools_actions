@@ -28,14 +28,6 @@ jobs:
               echo "update_needed=0" >> $GITHUB_OUTPUT
           fi
 
-      - name: Verify version number
-        id: version-number
-        run: |
-          set -eux
-          VERSIONSTR=$(./src/devel/bin/ncdevtool verifytag --fail-if-devel -p 'vX.Y.Z' --file-verify=VERSION)
-          echo "Extracted version str: '${VERSIONSTR}'"
-          echo "version_number=$VERSIONSTR" >> $GITHUB_OUTPUT
-
     outputs:
       update_needed: ${{ steps.compare_hashes.outputs.update_needed }}
 
