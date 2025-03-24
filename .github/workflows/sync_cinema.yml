@@ -93,7 +93,7 @@ jobs:
         if: steps.compare_hashes.outputs.update_needed == '1'
         run: |
           V1="$(git ls-remote '${{ steps.vars.outputs.target_url }}' '${{ steps.vars.outputs.target_branch }}')"
-          V1="$( echo $V2 | awk '{ print $1 }' )"
+          V1="$( echo $V1 | awk '{ print $1 }' )"
           echo "Target: ${V1}"
           V2="$(git ls-remote '${{ steps.vars.outputs.source_url }}' '${{ steps.vars.outputs.source_branch }}')"
           V2="$( echo $V2 | awk '{ print $1 }' )"
