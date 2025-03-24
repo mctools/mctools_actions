@@ -30,13 +30,15 @@ jobs:
 
       - name: "Get latest commit hash of target ${{ steps.vars.outputs.target_url }}:${{ steps.vars.outputs.target_branch }}"
         run: |
-          V="$(git ls-remote '${{ steps.vars.outputs.target_url }}' '${{ steps.vars.outputs.target_branch }}'| awk '{ print $1}')"
+          V="$(git ls-remote '${{ steps.vars.outputs.target_url }}' '${{ steps.vars.outputs.target_branch }}')"
+          V="$( echo $V | awk '{ print $1 }' )"
           echo "Got: ${V}"
           echo "LATEST_VERSION_TARGET=${V}" >> $GITHUB_ENV
 
       - name: "Get latest commit hash of source ${{ steps.vars.outputs.source_url }}:${{ steps.vars.outputs.source_branch }}"
         run: |
-          V="$(git ls-remote '${{ steps.vars.outputs.source_url }}' '${{ steps.vars.outputs.source_branch }}'| awk '{ print $1}')"
+          V="$(git ls-remote '${{ steps.vars.outputs.source_url }}' '${{ steps.vars.outputs.source_branch }}')"
+          V="$( echo $V | awk '{ print $1 }' )"
           echo "Got: ${V}"
           echo "LATEST_VERSION_SOURCE=${V}" >> $GITHUB_ENV
 
@@ -81,9 +83,11 @@ jobs:
       - name: Verify synchronisation
         if: steps.compare_hashes.outputs.update_needed == '1'
         run: |
-          V1="$(git ls-remote '${{ steps.vars.outputs.target_url }}' '${{ steps.vars.outputs.target_branch }}'| awk '{ print $1}')"
+          V1="$(git ls-remote '${{ steps.vars.outputs.target_url }}' '${{ steps.vars.outputs.target_branch }}')"
+          V1="$( echo $V2 | awk '{ print $1 }' )"
           echo "Target: ${V1}"
-          V2="$(git ls-remote '${{ steps.vars.outputs.source_url }}' '${{ steps.vars.outputs.source_branch }}'| awk '{ print $1}')"
+          V2="$(git ls-remote '${{ steps.vars.outputs.source_url }}' '${{ steps.vars.outputs.source_branch }}')"
+          V2="$( echo $V2 | awk '{ print $1 }' )"
           echo "Source: ${V2}"
           if [ "x${V1}" != "x${V2}" ]; then
               echo "Mismatch!!"
