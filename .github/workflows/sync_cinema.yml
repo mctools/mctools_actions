@@ -1,0 +1,102 @@
+name: sync_cinema
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: '51 4,10,16,22 * * *' # “At minute 51 past hour 4, 10, 16, and 22.”
+
+# Notes for how the API key used below was generated: ssh-keygen -t ed25519 -C
+# "mctools-bot-account@mctools-bot-dummy-domain.com" -f tmpkeyfile -N '' This
+# will create: tmpkeyfile and tmpkeyfile.pub. The tmpkeyfile must be uploaded as
+# a private secret in the repository where the workflow is running (here that
+# repo is mctools_actions and the secret is given the name
+# API_PUSH_KEY_MCTOOLS_CINEMA_MIRROR), while the tmpkeyfile.pub must be added
+# as an access key with write permissions in the repository receiving the pushes
+# (the repo at the target_url below).
+
+jobs:
+  check_and_sync:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { branchname: "dev" }
+          - { branchname: "master" }
+    name: branch-${{ matrix.branchname }}
+    steps:
+      - name: Define variables
+        id: vars
+        env:
+          SYNC_BRANCH_NAME : ${{ matrix.branchname }}
+        run: |
+          set -eu
+          target_gitkey=mctools/cinema-mirror
+          echo "target_gitkey=${target_gitkey}" >> $GITHUB_OUTPUT
+          echo "target_url=https://github.com/${target_gitkey}" >> $GITHUB_OUTPUT
+          echo "target_branch=${SYNC_BRANCH_NAME}" >> $GITHUB_OUTPUT
+          echo "source_url=https://code.ihep.ac.cn/cinema-developers/cinema.git" >> $GITHUB_OUTPUT
+          echo "source_branch=${SYNC_BRANCH_NAME}" >> $GITHUB_OUTPUT
+
+      - name: "Get latest commit hash of target ${{ steps.vars.outputs.target_url }}:${{ steps.vars.outputs.target_branch }}"
+        run: |
+          V="$(git ls-remote '${{ steps.vars.outputs.target_url }}' '${{ steps.vars.outputs.target_branch }}'| awk '{ print $1}')"
+          echo "Got: ${V}"
+          echo "LATEST_VERSION_TARGET=${V}" >> $GITHUB_ENV
+
+      - name: "Get latest commit hash of source ${{ steps.vars.outputs.source_url }}:${{ steps.vars.outputs.source_branch }}"
+        run: |
+          V="$(git ls-remote '${{ steps.vars.outputs.source_url }}' '${{ steps.vars.outputs.source_branch }}'| awk '{ print $1}')"
+          echo "Got: ${V}"
+          echo "LATEST_VERSION_SOURCE=${V}" >> $GITHUB_ENV
+
+      - name: Compare hashes
+        id: compare_hashes
+        run: |
+          if [ "x${LATEST_VERSION_SOURCE}" != "x${LATEST_VERSION_TARGET}" ]; then
+              echo "Hashes differ => Update needed!"
+              echo "update_needed=1" >> $GITHUB_OUTPUT
+          else
+              echo "Hashes identical => No update needed."
+              echo "update_needed=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout target repo
+        if: steps.compare_hashes.outputs.update_needed == '1'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.vars.outputs.target_branch }}
+          ssh-key: ${{ secrets.API_PUSH_KEY_MCTOOLS_CINEMA_MIRROR }}
+          repository: ${{ steps.vars.outputs.target_gitkey }}
+          path: ./clone
+          fetch-depth: 0
+
+      - name: Add source repo as remote and fetch updates
+        if: steps.compare_hashes.outputs.update_needed == '1'
+        working-directory: ./clone
+        run: |
+          git remote add upstream "${{ steps.vars.outputs.source_url }}"
+          git fetch upstream "${{ steps.vars.outputs.source_branch }}"
+
+      - name: Git fast-forward merge
+        if: steps.compare_hashes.outputs.update_needed == '1'
+        working-directory: ./clone
+        run: git merge --ff "upstream/${{ steps.vars.outputs.source_branch }}"
+
+      - name: Push changes
+        if: steps.compare_hashes.outputs.update_needed == '1'
+        working-directory: ./clone
+        run: git push
+
+      - name: Verify synchronisation
+        if: steps.compare_hashes.outputs.update_needed == '1'
+        run: |
+          V1="$(git ls-remote '${{ steps.vars.outputs.target_url }}' '${{ steps.vars.outputs.target_branch }}'| awk '{ print $1}')"
+          echo "Target: ${V1}"
+          V2="$(git ls-remote '${{ steps.vars.outputs.source_url }}' '${{ steps.vars.outputs.source_branch }}'| awk '{ print $1}')"
+          echo "Source: ${V2}"
+          if [ "x${V1}" != "x${V2}" ]; then
+              echo "Mismatch!!"
+              exit 1
+          else
+              echo "All good!"
+          fi
