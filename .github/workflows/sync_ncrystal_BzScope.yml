@@ -55,7 +55,7 @@ jobs:
 
       - name: Checkout target repo
         if: steps.compare_hashes.outputs.update_needed == '1'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ steps.vars.outputs.target_branch }}
           ssh-key: ${{ secrets.API_PUSH_KEY_MCTOOLS_BZSCOPE_PLUGIN }}
